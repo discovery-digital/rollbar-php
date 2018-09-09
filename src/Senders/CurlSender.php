@@ -26,7 +26,7 @@ class CurlSender implements SenderInterface
     {
         $this->endpoint = \Rollbar\Defaults::get()->endpoint() . 'item/';
         $this->timeout = \Rollbar\Defaults::get()->timeout();
-        
+
         $this->utilities = new \Rollbar\Utilities();
         if (isset($_ENV['ROLLBAR_ENDPOINT']) && !isset($opts['endpoint'])) {
             $opts['endpoint'] = $_ENV['ROLLBAR_ENDPOINT'];
@@ -51,7 +51,7 @@ class CurlSender implements SenderInterface
             $this->caCertPath = $opts['ca_cert_path'];
         }
     }
-    
+
     public function getEndpoint()
     {
         return $this->endpoint;
@@ -64,16 +64,16 @@ class CurlSender implements SenderInterface
         $this->setCurlOptions($handle, $payload, $accessToken);
         $result = curl_exec($handle);
         $statusCode = curl_getinfo($handle, CURLINFO_HTTP_CODE);
-        
+
         $result = $result === false ?
                     curl_error($handle) :
                     json_decode($result, true);
-        
+
         curl_close($handle);
 
         $data = $payload->data();
         $uuid = $data['data']['uuid'];
-        
+
         return new Response($statusCode, $result, $uuid);
     }
 
@@ -160,8 +160,7 @@ class CurlSender implements SenderInterface
         } while ($curlResponse == CURLM_CALL_MULTI_PERFORM);
         while ($active && $curlResponse == CURLM_OK) {
             if (curl_multi_select($this->multiHandle, 0.01) == -1) {
-                $this->maybeSendMoreBatchRequests($accessToken);
-                return;
+                usleep(1000); //https://curl.haxx.se/libcurl/c/curl_multi_fdset.html
             }
             do {
                 $curlResponse = curl_multi_exec($this->multiHandle, $active);
@@ -183,7 +182,7 @@ class CurlSender implements SenderInterface
         }
         $this->maybeSendMoreBatchRequests($accessToken);
     }
-    
+
     public function toString()
     {
         return "Rollbar API endpoint: " . $this->getEndpoint();
